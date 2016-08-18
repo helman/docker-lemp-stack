@@ -1,0 +1,56 @@
+version: "2"
+services:
+    web:
+        image: nginx:latest
+        links:
+            - phpapp
+        ports:
+            - 9080:80
+            - 9443:443
+        volumes:
+            - ./app:/var/www/app
+            - ./container/var/log/nginx:/var/log/nginx
+            - ./container/etc/nginx/conf.d:/etc/nginx/conf.d
+        networks:
+            - front
+            - back
+    phpapp:
+        build:
+            context: ./container
+            dockerfile: Dockerfile.nginx
+        links:
+            - redis
+            - database
+            - memcached
+        volumes:
+            - ./app:/var/www/app
+        networks:
+            - back
+    redis:
+        image: redis:latest
+        volumes:
+            - ./container/data:/data
+        networks:
+            - back
+    memcached:
+        image: memcached:latest
+        networks:
+            - back
+    database:
+        image: percona:latest
+        environment:
+            - MYSQL_ROOT_PASSWORD=password
+        ports:
+            - 3306:3306
+        volumes:
+            - ./container/var/log/mysql:/var/log/mysql
+            - ./container/var/lib/mysql:/var/lib/mysql
+        networks:
+            - back
+networks:
+    default:
+        driver: host
+    front:
+        driver: bridge
+    back:
+        driver: bridge
